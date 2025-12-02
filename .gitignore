@@ -5,3 +5,4 @@
 tags
 my_react_app/docs/current
 node_modules/
+my_react_app/public/dashboard/**/*
