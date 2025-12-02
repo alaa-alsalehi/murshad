@@ -273,6 +273,7 @@ function AiAssistantPage() {
   const [input, setInput] = useState('')
   const [drafts, setDrafts] = useState([])
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false)
+  const [isMainVisible, setIsMainVisible] = useState(true)
   const draftsRef = useRef(null)
 
   const savedChats = [
@@ -364,6 +365,7 @@ function AiAssistantPage() {
                   variant="outlined"
                   className="ai-new-chat-btn"
                   type="button"
+                  onClick={() => setIsMainVisible(true)}
                   style={{
                     width: '100%',
                     justifyContent: 'center',
@@ -419,115 +421,118 @@ function AiAssistantPage() {
           )}
         </Sidebar>
 
-        <Layout.Content className="ai-main">
-          <Topbar
-            className="ai-topbar"
-            style={{
-              borderBottom: 'none',
-              background: 'transparent',
-              padding: 0,
-              position: 'static',
-            }}
-          >
-            <div />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="ai-close-button"
-              aria-label="Close assistant"
+        {isMainVisible && (
+          <Layout.Content className="ai-main">
+            <Topbar
+              className="ai-topbar"
               style={{
-                width: 40,
-                height: 40,
-                justifyContent: 'center',
-                fontSize: 20,
+                borderBottom: 'none',
+                background: 'transparent',
+                padding: 0,
+                position: 'static',
               }}
             >
-              ×
-            </Button>
-          </Topbar>
-
-          <div className="ai-canvas">
-            <div className="ai-drafts" ref={draftsRef}>
-              {drafts.map((draft) => (
-                <span key={draft} className="ai-draft-pill">
-                  {draft}
-                </span>
-              ))}
-            </div>
-
-            <form className="ai-input-bar" onSubmit={handleSubmit}>
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message.."
-              />
-              <Stack className="ai-input-actions">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Voice input"
-                  style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
-                >
-                  <img src={voiceIcon} alt="" aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Settings"
-                  style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
-                >
-                  <img src={voiceChatIcon} alt="" aria-hidden="true" />
-                </Button>
-              </Stack>
-            </form>
-
-            <div className="ai-suggestions">
-              {quickCards.map((card) => (
-                <Card
-                  key={card.title}
-                  className="ai-suggestion-card"
-                  style={{
-                    background: 'var(--gup-color-suggestion)',
-                    border: '1px solid var(--gup-color-suggestion-border)',
-                  }}
-                >
-                  <div className="ai-card-icon">{card.icon}</div>
-                  <div className="ai-card-body">
-                    <Text variant="subtitle1" className="ai-card-title">
-                      {card.title}
-                    </Text>
-                    <Text variant="caption" color="muted" className="ai-card-subtitle">
-                      {card.subtitle}
-                    </Text>
-                  </div>
-                </Card>
-              ))}
+              <div />
               <Button
                 type="button"
                 variant="ghost"
-                className="ai-suggestion-next"
-                aria-label="Show more suggestions"
+                size="sm"
+                className="ai-close-button"
+                aria-label="Close main area"
+                onClick={() => setIsMainVisible(false)}
                 style={{
-                  width: 48,
-                  height: 72,
+                  width: 40,
+                  height: 40,
                   justifyContent: 'center',
-                  background: 'var(--gup-color-suggestion)',
-                  color: 'var(--gup-color-brand-strong)',
+                  fontSize: 20,
                 }}
               >
-                ›
+                ×
               </Button>
-            </div>
+            </Topbar>
 
-            <Text variant="caption" color="muted" className="ai-soon-label">
-              Soon
-            </Text>
-          </div>
-        </Layout.Content>
+            <div className="ai-canvas">
+              <div className="ai-drafts" ref={draftsRef}>
+                {drafts.map((draft) => (
+                  <span key={draft} className="ai-draft-pill">
+                    {draft}
+                  </span>
+                ))}
+              </div>
+
+              <form className="ai-input-bar" onSubmit={handleSubmit}>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type a message.."
+                />
+                <Stack className="ai-input-actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Voice input"
+                    style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
+                  >
+                    <img src={voiceIcon} alt="" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Settings"
+                    style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
+                  >
+                    <img src={voiceChatIcon} alt="" aria-hidden="true" />
+                  </Button>
+                </Stack>
+              </form>
+
+              <div className="ai-suggestions">
+                {quickCards.map((card) => (
+                  <Card
+                    key={card.title}
+                    className="ai-suggestion-card"
+                    style={{
+                      background: 'var(--gup-color-suggestion)',
+                      border: '1px solid var(--gup-color-suggestion-border)',
+                    }}
+                  >
+                    <div className="ai-card-icon">{card.icon}</div>
+                    <div className="ai-card-body">
+                      <Text variant="subtitle1" className="ai-card-title">
+                        {card.title}
+                      </Text>
+                      <Text variant="caption" color="muted" className="ai-card-subtitle">
+                        {card.subtitle}
+                      </Text>
+                    </div>
+                  </Card>
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="ai-suggestion-next"
+                  aria-label="Show more suggestions"
+                  style={{
+                    width: 48,
+                    height: 72,
+                    justifyContent: 'center',
+                    background: 'var(--gup-color-suggestion)',
+                    color: 'var(--gup-color-brand-strong)',
+                  }}
+                >
+                  ›
+                </Button>
+              </div>
+
+              <Text variant="caption" color="muted" className="ai-soon-label">
+                Soon
+              </Text>
+            </div>
+          </Layout.Content>
+        )}
       </div>
     </Layout>
   )
