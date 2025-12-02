@@ -1,0 +1,10 @@
+{
+  "name": "my_react_app",
+  "version": "0.0.1",
+  "scripts": {
+    "postinstall": "cd dashboard && yarn install",
+    "dev": "cd dashboard && yarn dev",
+    "build": "cd dashboard && yarn build"
+  }
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "dashboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --base=/assets/my_react_app/dashboard/ && yarn copy-html-entry",
+    "preview": "vite preview",
+    "copy-html-entry": "cp ../my_react_app/public/dashboard/index.html ../my_react_app/www/dashboard.html"
+  },
+  "dependencies": {
+    "frappe-react-sdk": "^1.13.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^4.5.2"
+  }
+}
+
