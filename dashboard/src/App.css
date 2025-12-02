@@ -455,14 +455,22 @@
   gap: 8px;
   max-height: 220px;
   overflow-y: auto;
+  align-items: flex-end;
 }
 
 .ai-draft-pill {
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--gup-color-accent);
+  padding: 16px 8px;
+  border-radius: 16px 16px 0 16px;
+  background-color: var(--gup-color-brand);
   font-size: 12px;
-  color: var(--gup-color-brand-strong);
+  color: var(--gup-color-sidebar-card);
+  text-align: right;
+  display: inline-block;
+  max-width: fit-content;
+  word-wrap: break-word;
+  white-space: normal;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .ai-input-bar {
