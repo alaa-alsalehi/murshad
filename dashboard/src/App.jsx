@@ -439,7 +439,11 @@ function AiAssistantPage() {
                 size="sm"
                 className="ai-close-button"
                 aria-label="Close main area"
-                onClick={() => setIsMainVisible(false)}
+                onClick={() => {
+                  setIsMainVisible(false)
+                  setDrafts([])
+                  setInput('')
+                }}
                 style={{
                   width: 40,
                   height: 40,
@@ -489,47 +493,57 @@ function AiAssistantPage() {
                 </Stack>
               </form>
 
-              <div className="ai-suggestions">
-                {quickCards.map((card) => (
-                  <Card
-                    key={card.title}
-                    className="ai-suggestion-card"
-                    style={{
-                      background: 'var(--gup-color-suggestion)',
-                      border: '1px solid var(--gup-color-suggestion-border)',
-                    }}
-                  >
-                    <div className="ai-card-icon">{card.icon}</div>
-                    <div className="ai-card-body">
-                      <Text variant="subtitle1" className="ai-card-title">
-                        {card.title}
-                      </Text>
-                      <Text variant="caption" color="muted" className="ai-card-subtitle">
-                        {card.subtitle}
-                      </Text>
-                    </div>
-                  </Card>
-                ))}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="ai-suggestion-next"
-                  aria-label="Show more suggestions"
-                  style={{
-                    width: 48,
-                    height: 72,
-                    justifyContent: 'center',
-                    background: 'var(--gup-color-suggestion)',
-                    color: 'var(--gup-color-brand-strong)',
-                  }}
-                >
-                  ›
-                </Button>
-              </div>
-
-              <Text variant="caption" color="muted" className="ai-soon-label">
-                Soon
-              </Text>
+              {drafts.length === 0 && (
+                <>
+                  <div className="ai-suggestions">
+                    {quickCards.map((card) => (
+                      <Card
+                        key={card.title}
+                        className="ai-suggestion-card"
+                        onClick={() => {
+                          setDrafts((prev) => [...prev, card.title])
+                        }}
+                        style={{
+                          background: 'var(--gup-color-suggestion)',
+                          border: '1px solid var(--gup-color-suggestion-border)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div className="ai-card-icon">{card.icon}</div>
+                        <div className="ai-card-body">
+                          <Text variant="subtitle1" className="ai-card-title">
+                            {card.title}
+                          </Text>
+                          <Text variant="caption" color="muted" className="ai-card-subtitle">
+                            {card.subtitle}
+                          </Text>
+                        </div>
+                      </Card>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="ai-suggestion-next"
+                      aria-label="Show more suggestions"
+                      style={{
+                        width: 48,
+                        height: 72,
+                        minHeight: 72,
+                        maxHeight: 72,
+                        justifyContent: 'center',
+                        background: 'var(--gup-color-suggestion)',
+                        border: '1px solid var(--gup-color-suggestion-border)',
+                        color: 'var(--gup-color-brand-strong)',
+                        padding: '16px 14px',
+                        borderRadius: 16,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      ›
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </Layout.Content>
         )}
