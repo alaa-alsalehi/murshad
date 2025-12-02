@@ -20,6 +20,8 @@ import editIcon from './icon/edit.svg'
 import bookIcon from './icon/book.svg'
 import renewIcon from './icon/renew.svg'
 import transferIcon from './icon/property.svg'
+import voiceIcon from './icon/voice.svg'
+import voiceChatIcon from './icon/voice_chat.svg'
 
 function ServiceDetailsPage() {
   return (
@@ -469,7 +471,7 @@ function AiAssistantPage() {
                   aria-label="Voice input"
                   style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
                 >
-                  🎙️
+                  <img src={voiceIcon} alt="" aria-hidden="true" />
                 </Button>
                 <Button
                   type="button"
@@ -478,7 +480,7 @@ function AiAssistantPage() {
                   aria-label="Settings"
                   style={{ width: 36, height: 36, justifyContent: 'center', fontSize: 16 }}
                 >
-                  📶
+                  <img src={voiceChatIcon} alt="" aria-hidden="true" />
                 </Button>
               </Stack>
             </form>
