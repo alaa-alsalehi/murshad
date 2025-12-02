@@ -1,5 +1,5 @@
 import './App.css'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { FrappeProvider } from 'frappe-react-sdk'
 // TEMP: local shim for the Omangup design system.
 // Once @gup-ds/react is available in your registry, change this import to:
@@ -271,6 +271,7 @@ function AiAssistantPage() {
   const [input, setInput] = useState('')
   const [drafts, setDrafts] = useState([])
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false)
+  const draftsRef = useRef(null)
 
   const savedChats = [
     'Renewing the driver’s license',
@@ -303,6 +304,12 @@ function AiAssistantPage() {
     setDrafts((prev) => [...prev, trimmed])
     setInput('')
   }
+
+  useEffect(() => {
+    if (draftsRef.current) {
+      draftsRef.current.scrollTop = draftsRef.current.scrollHeight
+    }
+  }, [drafts])
 
   return (
     <Layout
@@ -439,7 +446,7 @@ function AiAssistantPage() {
           </Topbar>
 
           <div className="ai-canvas">
-            <div className="ai-drafts">
+            <div className="ai-drafts" ref={draftsRef}>
               {drafts.map((draft) => (
                 <span key={draft} className="ai-draft-pill">
                   {draft}
