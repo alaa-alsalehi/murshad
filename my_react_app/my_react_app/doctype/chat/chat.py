@@ -76,3 +76,12 @@ def update_chat_status(chat_name, status):
 	chat.save(ignore_permissions=True)
 	return chat.as_dict()
 
+
+@frappe.whitelist()
+def update_chat_title(chat_name, title):
+	"""Update chat title"""
+	chat = frappe.get_doc("Chat", chat_name)
+	chat.title = title
+	chat.save(ignore_permissions=True)
+	return chat.as_dict()
+

@@ -410,6 +410,9 @@ function AiAssistantPage() {
       setIsMainVisible(true)
     }
 
+    // Check if this is the first message (before creating it)
+    const isFirstMessage = messages.length === 0
+
     // Create the message
     try {
       await call.post('my_react_app.my_react_app.doctype.message.message.create_message', {
@@ -418,6 +421,22 @@ function AiAssistantPage() {
         message_type: 'User'
       })
       setInput('')
+      
+      // If this is the first message, update the chat title to the message content
+      if (isFirstMessage) {
+        try {
+          const title = trimmed.substring(0, 50) || trimmed
+          await call.post('my_react_app.my_react_app.doctype.chat.chat.update_chat_title', {
+            chat_name: chatName,
+            title: title
+          })
+          // Reload chats to show updated title
+          await loadChats()
+        } catch (error) {
+          console.error('Error updating chat title:', error)
+        }
+      }
+      
       await loadMessages(chatName)
     } catch (error) {
       console.error('Error creating message:', error)
@@ -664,6 +683,11 @@ function AiAssistantPage() {
                             setIsMainVisible(true)
                           }
 
+                          // Check if this is the first message
+                          // If we just created the chat, it's definitely the first message
+                          // If chat already existed, check if current messages are empty
+                          const isFirstMessage = !currentChat || (currentChat === chatName && messages.length === 0)
+
                           // Create the message
                           try {
                             await call.post(
@@ -674,6 +698,21 @@ function AiAssistantPage() {
                                 message_type: 'User'
                               }
                             )
+                            
+                            // If this is the first message and chat already existed, update the title
+                            if (isFirstMessage && currentChat && currentChat === chatName) {
+                              try {
+                                const title = card.title.substring(0, 50) || card.title
+                                await call.post('my_react_app.my_react_app.doctype.chat.chat.update_chat_title', {
+                                  chat_name: chatName,
+                                  title: title
+                                })
+                                await loadChats()
+                              } catch (error) {
+                                console.error('Error updating chat title:', error)
+                              }
+                            }
+                            
                             await loadMessages(chatName)
                           } catch (error) {
                             console.error('Error creating message:', error)
