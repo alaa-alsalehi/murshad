@@ -15,6 +15,22 @@ class Chat(Document):
 
 	def before_save(self):
 		self.updated_at = now()
+	
+	def after_insert(self):
+		"""Trigger webhook when chat is created"""
+		try:
+			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_chat_created_webhook
+			trigger_chat_created_webhook(self)
+		except Exception as e:
+			frappe.logger().error(f"Failed to trigger chat created webhook: {str(e)}")
+	
+	def on_update(self):
+		"""Trigger webhook when chat is updated"""
+		try:
+			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_chat_updated_webhook
+			trigger_chat_updated_webhook(self)
+		except Exception as e:
+			frappe.logger().error(f"Failed to trigger chat updated webhook: {str(e)}")
 
 
 @frappe.whitelist()

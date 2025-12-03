@@ -17,6 +17,22 @@ class Message(Document):
 			chat = frappe.get_doc("Chat", self.chat)
 			chat.updated_at = now()
 			chat.save(ignore_permissions=True)
+	
+	def after_insert(self):
+		"""Trigger webhook when message is created"""
+		try:
+			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_created_webhook
+			trigger_message_created_webhook(self)
+		except Exception as e:
+			frappe.logger().error(f"Failed to trigger message created webhook: {str(e)}")
+	
+	def on_update(self):
+		"""Trigger webhook when message is updated"""
+		try:
+			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_updated_webhook
+			trigger_message_updated_webhook(self)
+		except Exception as e:
+			frappe.logger().error(f"Failed to trigger message updated webhook: {str(e)}")
 
 
 @frappe.whitelist()
