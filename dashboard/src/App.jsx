@@ -1,6 +1,6 @@
 import './App.css'
-import { useState, useRef, useEffect } from 'react'
-import { FrappeProvider } from 'frappe-react-sdk'
+import { useState, useRef, useEffect, useContext } from 'react'
+import { FrappeProvider, FrappeContext } from 'frappe-react-sdk'
 // TEMP: local shim for the Omangup design system.
 // Once @gup-ds/react is available in your registry, change this import to:
 // import { GupProvider, Layout, Sidebar, Topbar, Card, Text, Button, Stack } from '@gup-ds/react'
@@ -270,17 +270,98 @@ function ServiceDetailsPage() {
 }
 
 function AiAssistantPage() {
+  const frappe = useContext(FrappeContext)
+  const call = frappe?.call
   const [input, setInput] = useState('')
-  const [drafts, setDrafts] = useState([])
+  const [messages, setMessages] = useState([])
+  const [chats, setChats] = useState([])
+  const [currentChat, setCurrentChat] = useState(null)
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false)
   const [isMainVisible, setIsMainVisible] = useState(true)
+  const [loading, setLoading] = useState(false)
   const draftsRef = useRef(null)
 
-  const savedChats = [
-    'Renewing the driver’s license',
-    'Obtaining a scholarship',
-    'Health insurance coverage',
-  ]
+  // Load chats on component mount
+  useEffect(() => {
+    loadChats()
+  }, [])
+
+  // Load messages when current chat changes
+  useEffect(() => {
+    if (currentChat) {
+      loadMessages(currentChat)
+    } else {
+      setMessages([])
+    }
+  }, [currentChat])
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (draftsRef.current) {
+      draftsRef.current.scrollTop = draftsRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const loadChats = async () => {
+    if (!call) return
+    try {
+      setLoading(true)
+      const result = await call.post('my_react_app.my_react_app.doctype.chat.chat.get_chats')
+      // Ensure result is an array
+      const chatsArray = Array.isArray(result) ? result : (result?.message || [])
+      setChats(chatsArray)
+    } catch (error) {
+      console.error('Error loading chats:', error)
+      setChats([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadMessages = async (chatName) => {
+    if (!call) return
+    try {
+      setLoading(true)
+      const result = await call.post('my_react_app.my_react_app.doctype.message.message.get_messages', {
+        chat: chatName
+      })
+      // Ensure result is an array
+      const messagesArray = Array.isArray(result) ? result : (result?.message || [])
+      setMessages(messagesArray)
+    } catch (error) {
+      console.error('Error loading messages:', error)
+      setMessages([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createNewChat = async () => {
+    if (!call) return
+    try {
+      setLoading(true)
+      const result = await call.post('my_react_app.my_react_app.doctype.chat.chat.create_chat', {
+        title: 'New Chat',
+        description: 'AI Assistant Chat'
+      })
+      // Handle response - could be wrapped in message property
+      const chatData = result?.message || result
+      setCurrentChat(chatData?.name || result?.name)
+      setMessages([])
+      await loadChats()
+      setIsMainVisible(true)
+    } catch (error) {
+      console.error('Error creating chat:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChatClick = async (chatName) => {
+    setCurrentChat(chatName)
+    setIsMainVisible(true)
+    await loadMessages(chatName)
+  }
 
   const quickCards = [
     {
@@ -300,19 +381,48 @@ function AiAssistantPage() {
     },
   ]
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    if (!call) return
     const trimmed = input.trim()
     if (!trimmed) return
-    setDrafts((prev) => [...prev, trimmed])
-    setInput('')
-  }
 
-  useEffect(() => {
-    if (draftsRef.current) {
-      draftsRef.current.scrollTop = draftsRef.current.scrollHeight
+    // If no current chat, create one first
+    let chatName = currentChat
+    if (!chatName) {
+      try {
+        const newChat = await call.post('my_react_app.my_react_app.doctype.chat.chat.create_chat', {
+          title: trimmed.substring(0, 50) || 'New Chat',
+          description: 'AI Assistant Chat'
+        })
+        // Handle response - could be wrapped in message property
+        const chatData = newChat?.message || newChat
+        chatName = chatData?.name || newChat?.name
+        setCurrentChat(chatName)
+        setIsMainVisible(true)
+        await loadChats()
+      } catch (error) {
+        console.error('Error creating chat:', error)
+        return
+      }
+    } else {
+      // If chat already exists, make sure main is visible
+      setIsMainVisible(true)
     }
-  }, [drafts])
+
+    // Create the message
+    try {
+      await call.post('my_react_app.my_react_app.doctype.message.message.create_message', {
+        chat: chatName,
+        content: trimmed,
+        message_type: 'User'
+      })
+      setInput('')
+      await loadMessages(chatName)
+    } catch (error) {
+      console.error('Error creating message:', error)
+    }
+  }
 
   return (
     <Layout
@@ -365,7 +475,8 @@ function AiAssistantPage() {
                   variant="outlined"
                   className="ai-new-chat-btn"
                   type="button"
-                  onClick={() => setIsMainVisible(true)}
+                  onClick={createNewChat}
+                  disabled={loading}
                   style={{
                     width: '100%',
                     justifyContent: 'center',
@@ -381,25 +492,39 @@ function AiAssistantPage() {
                 </Button>
 
                 <div className="ai-chat-list">
-                  {savedChats.map((label, idx) => (
-                    <Button
-                      key={label}
-                      type="button"
-                      variant="ghost"
-                      className={`ai-chat-item ${idx === 0 ? 'ai-chat-item--active' : ''}`}
-                      style={{
-                        width: '100%',
-                        justifyContent: 'flex-start',
-                        color:
-                          idx === 0 ? 'var(--gup-color-brand-strong)' : 'var(--gup-color-text)',
-                        background: idx === 0 ? 'var(--gup-color-suggestion)' : 'transparent',
-                        border: '1px solid transparent',
-                        fontWeight: idx === 0 ? 600 : 400,
-                      }}
-                    >
-                      {label}
-                    </Button>
-                  ))}
+                  {loading && chats.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gup-color-muted)' }}>
+                      Loading...
+                    </div>
+                  ) : chats.length === 0 ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gup-color-muted)' }}>
+                      No chats yet
+                    </div>
+                  ) : (
+                    (Array.isArray(chats) ? chats : []).map((chat) => (
+                      <Button
+                        key={chat.name}
+                        type="button"
+                        variant="ghost"
+                        className={`ai-chat-item ${currentChat === chat.name ? 'ai-chat-item--active' : ''}`}
+                        onClick={() => handleChatClick(chat.name)}
+                        style={{
+                          width: '100%',
+                          justifyContent: 'flex-start',
+                          color:
+                            currentChat === chat.name
+                              ? 'var(--gup-color-brand-strong)'
+                              : 'var(--gup-color-text)',
+                          background:
+                            currentChat === chat.name ? 'var(--gup-color-suggestion)' : 'transparent',
+                          border: '1px solid transparent',
+                          fontWeight: currentChat === chat.name ? 600 : 400,
+                        }}
+                      >
+                        {chat.title}
+                      </Button>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -441,7 +566,8 @@ function AiAssistantPage() {
                 aria-label="Close main area"
                 onClick={() => {
                   setIsMainVisible(false)
-                  setDrafts([])
+                  setCurrentChat(null)
+                  setMessages([])
                   setInput('')
                 }}
                 style={{
@@ -457,11 +583,21 @@ function AiAssistantPage() {
 
             <div className="ai-canvas">
               <div className="ai-drafts" ref={draftsRef}>
-                {drafts.map((draft) => (
-                  <span key={draft} className="ai-draft-pill">
-                    {draft}
-                  </span>
-                ))}
+                {loading && messages.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gup-color-muted)' }}>
+                    Loading messages...
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: 'var(--gup-color-muted)' }}>
+                    {currentChat ? 'No messages yet. Start the conversation!' : 'Select a chat or create a new one'}
+                  </div>
+                ) : (
+                  (Array.isArray(messages) ? messages : []).map((message) => (
+                    <span key={message.name} className="ai-draft-pill">
+                      {message.content}
+                    </span>
+                  ))
+                )}
               </div>
 
               <form className="ai-input-bar" onSubmit={handleSubmit}>
@@ -493,15 +629,55 @@ function AiAssistantPage() {
                 </Stack>
               </form>
 
-              {drafts.length === 0 && (
+              {messages.length === 0 && (
                 <>
                   <div className="ai-suggestions">
                     {quickCards.map((card) => (
                       <Card
                         key={card.title}
                         className="ai-suggestion-card"
-                        onClick={() => {
-                          setDrafts((prev) => [...prev, card.title])
+                        onClick={async () => {
+                          if (!call) return
+                          // If no current chat, create one first
+                          let chatName = currentChat
+                          if (!chatName) {
+                            try {
+                              const newChat = await call.post(
+                                'my_react_app.my_react_app.doctype.chat.chat.create_chat',
+                                {
+                                  title: card.title.substring(0, 50),
+                                  description: 'AI Assistant Chat'
+                                }
+                              )
+                              // Handle response - could be wrapped in message property
+                              const chatData = newChat?.message || newChat
+                              chatName = chatData?.name || newChat?.name
+                              setCurrentChat(chatName)
+                              setIsMainVisible(true)
+                              await loadChats()
+                            } catch (error) {
+                              console.error('Error creating chat:', error)
+                              return
+                            }
+                          } else {
+                            // If chat already exists, make sure main is visible
+                            setIsMainVisible(true)
+                          }
+
+                          // Create the message
+                          try {
+                            await call.post(
+                              'my_react_app.my_react_app.doctype.message.message.create_message',
+                              {
+                                chat: chatName,
+                                content: card.title,
+                                message_type: 'User'
+                              }
+                            )
+                            await loadMessages(chatName)
+                          } catch (error) {
+                            console.error('Error creating message:', error)
+                          }
                         }}
                         style={{
                           background: 'var(--gup-color-suggestion)',
