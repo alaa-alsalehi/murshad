@@ -24,13 +24,16 @@ bench --site [your-site-name] migrate
 1. Go to **n8n Settings** in your Frappe desk
 2. Enable the integration by checking **Enable n8n Integration**
 3. Configure your webhook URLs:
+   - **Start Chat Webhook URL**: n8n webhook URL for when the first message is sent in a chat
    - **Chat Created Webhook URL**: n8n webhook URL for when a chat is created
    - **Message Created Webhook URL**: n8n webhook URL for when a message is created
    - **Chat Updated Webhook URL**: n8n webhook URL for when a chat is updated
    - **Message Updated Webhook URL**: n8n webhook URL for when a message is updated
    - **Test Webhook URL**: URL for testing the connection
-4. Click **Generate API Keys** to create API Key and API Secret (or they will be auto-generated on save)
-5. Save your API credentials securely - you'll need them to authenticate n8n requests
+4. Configure Basic Authentication:
+   - **Username**: Username for Basic Auth (if required by n8n)
+   - **Password**: Password for Basic Auth (if required by n8n)
+5. Save your credentials securely
 
 ### 3. Configure Advanced Settings
 
@@ -64,11 +67,32 @@ All webhooks follow this structure:
 
 ### Event Types
 
+- `start.chat` - Triggered when the first message is sent in a chat
 - `chat.created` - Triggered when a new chat is created
 - `chat.updated` - Triggered when a chat is updated
 - `message.created` - Triggered when a new message is created
 - `message.updated` - Triggered when a message is updated
 - `test` - Test webhook
+
+### Start Chat Webhook Data
+
+Triggered when the first message is sent in a chat. This is useful for initializing workflows when a user starts a new conversation.
+
+```json
+{
+  "name": "MSG-20240101-00001",
+  "chat": "CHAT-20240101-00001",
+  "chat_title": "My Chat",
+  "chat_user": "user@example.com",
+  "chat_status": "Active",
+  "chat_description": "Chat description",
+  "content": "First message content",
+  "sender": "user@example.com",
+  "message_type": "User",
+  "created_at": "2024-01-01 12:00:00",
+  "is_first_message": true
+}
+```
 
 ### Chat Webhook Data
 
@@ -99,9 +123,10 @@ All webhooks follow this structure:
 
 ### Authentication Headers
 
-If API keys are configured, webhooks will include:
-- `X-API-Key`: API Key
-- `X-API-Secret`: API Secret (if configured)
+If Basic Authentication is configured, webhooks will include:
+- `Authorization`: `Basic <base64_encoded_username:password>`
+
+The credentials are automatically encoded using Base64 and included in the Authorization header.
 
 ### Setting Up n8n Webhooks
 
@@ -113,13 +138,16 @@ If API keys are configured, webhooks will include:
 
 ## API Endpoints (n8n → Frappe)
 
-All API endpoints require authentication via API Key (and optionally API Secret).
+All API endpoints require authentication via Basic Authentication.
 
 ### Authentication
 
-Include these headers in your requests:
-- `X-API-Key`: Your API Key from n8n Settings
-- `X-API-Secret`: Your API Secret (optional but recommended)
+Include the Authorization header in your requests:
+- `Authorization`: `Basic <base64_encoded_username:password>`
+
+Where `username` and `password` are the credentials configured in n8n Settings.
+
+**Note**: The credentials must be Base64 encoded. Format: `base64(username:password)`
 
 ### Base URL
 
@@ -157,8 +185,7 @@ Check if the integration is active.
 ```bash
 curl -X POST \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_create_chat' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret' \
+  -u 'username:password' \
   -H 'Content-Type: application/json' \
   -d '{
     "title": "New Chat from n8n",
@@ -177,8 +204,7 @@ curl -X POST \
 ```bash
 curl -X GET \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_get_chats?user=user@example.com' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret'
+  -u 'username:password'
 ```
 
 #### Get Chat
@@ -192,8 +218,7 @@ curl -X GET \
 ```bash
 curl -X GET \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_get_chat?chat_name=CHAT-20240101-00001' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret'
+  -u 'username:password'
 ```
 
 #### Update Chat Status
@@ -208,8 +233,7 @@ curl -X GET \
 ```bash
 curl -X POST \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_update_chat_status' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret' \
+  -u 'username:password' \
   -H 'Content-Type: application/json' \
   -d '{
     "chat_name": "CHAT-20240101-00001",
@@ -229,8 +253,7 @@ curl -X POST \
 ```bash
 curl -X POST \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_update_chat_title' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret' \
+  -u 'username:password' \
   -H 'Content-Type: application/json' \
   -d '{
     "chat_name": "CHAT-20240101-00001",
@@ -252,8 +275,7 @@ curl -X POST \
 ```bash
 curl -X POST \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_create_message' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret' \
+  -u 'username:password' \
   -H 'Content-Type: application/json' \
   -d '{
     "chat": "CHAT-20240101-00001",
@@ -273,8 +295,7 @@ curl -X POST \
 ```bash
 curl -X GET \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_get_messages?chat=CHAT-20240101-00001' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret'
+  -u 'username:password'
 ```
 
 ## Using n8n HTTP Request Node
@@ -283,10 +304,10 @@ When configuring n8n HTTP Request nodes to call Frappe APIs:
 
 1. **Method**: POST or GET (depending on endpoint)
 2. **URL**: Full endpoint URL
-3. **Authentication**: None (we use custom headers)
+3. **Authentication**: Basic Auth
+   - **Username**: Your username from n8n Settings
+   - **Password**: Your password from n8n Settings
 4. **Headers**:
-   - `X-API-Key`: Your API Key
-   - `X-API-Secret`: Your API Secret
    - `Content-Type`: `application/json`
 5. **Body**: JSON payload (for POST requests)
 
@@ -306,22 +327,21 @@ Use the health check endpoint to verify authentication:
 ```bash
 curl -X GET \
   'https://your-site.com/api/method/my_react_app.my_react_app.api.n8n_api.n8n_health_check' \
-  -H 'X-API-Key: your-api-key' \
-  -H 'X-API-Secret: your-api-secret'
+  -u 'username:password'
 ```
 
 ## Error Handling
 
 - Webhook failures are logged but don't block the main operation
 - API endpoints return standard Frappe error responses
-- Invalid API keys return 401 Authentication Error
+- Invalid Basic Auth credentials return 401 Authentication Error
 - Missing required parameters return 400 Bad Request
 
 ## Security Best Practices
 
-1. **Keep API keys secure**: Never commit API keys to version control
+1. **Keep credentials secure**: Never commit usernames/passwords to version control
 2. **Use HTTPS**: Always use HTTPS for webhook URLs
-3. **Rotate keys**: Regularly regenerate API keys
+3. **Rotate credentials**: Regularly change Basic Auth passwords
 4. **Monitor logs**: Check Frappe logs for webhook failures
 5. **Validate webhooks**: In n8n, validate incoming webhook data
 
@@ -336,8 +356,8 @@ curl -X GET \
 
 ### API calls failing
 
-1. Verify API Key and Secret are correct
-2. Check that headers are set correctly (`X-API-Key`, `X-API-Secret`)
+1. Verify Basic Auth username and password are correct
+2. Check that Basic Authentication is configured correctly in n8n HTTP Request node
 3. Ensure the integration is enabled
 4. Check Frappe logs for authentication errors
 
@@ -349,7 +369,13 @@ curl -X GET \
 
 ## Example n8n Workflows
 
-### Workflow 1: Auto-respond to Messages
+### Workflow 1: Auto-respond to Start Chat
+
+1. **Webhook** node receives start.chat event (first message in chat)
+2. **HTTP Request** node calls n8n_create_message to send welcome message
+3. **Set** node updates chat status if needed
+
+### Workflow 2: Auto-respond to Messages
 
 1. **Webhook** node receives message.created event
 2. **IF** node checks if message_type is "User"
