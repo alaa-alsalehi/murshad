@@ -17,14 +17,24 @@ class Message(Document):
 			chat = frappe.get_doc("Chat", self.chat)
 			chat.updated_at = now()
 			chat.save(ignore_permissions=True)
+			
+			# Check if this will be the first message in the chat
+			existing_count = frappe.db.count("Message", {"chat": self.chat})
+			self._is_first_message = (existing_count == 0)
+		else:
+			self._is_first_message = False
 	
 	def after_insert(self):
 		"""Trigger webhook when message is created"""
 		try:
-			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_created_webhook
+			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_created_webhook, trigger_start_chat_webhook
+			# Check if this is the first message (start chat)
+			if getattr(self, '_is_first_message', False):
+				trigger_start_chat_webhook(self)
+			# Always trigger message created webhook
 			trigger_message_created_webhook(self)
 		except Exception as e:
-			frappe.logger().error(f"Failed to trigger message created webhook: {str(e)}")
+			frappe.logger().error(f"Failed to trigger message webhooks: {str(e)}")
 	
 	def on_update(self):
 		"""Trigger webhook when message is updated"""

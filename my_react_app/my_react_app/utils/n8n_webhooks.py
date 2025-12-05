@@ -169,6 +169,33 @@ def trigger_message_updated_webhook(message_doc):
 	
 	send_webhook_to_n8n(settings.message_update_webhook_url, data, "message.updated")
 
+
+def trigger_start_chat_webhook(message_doc):
+	"""Trigger webhook when the first message is created in a chat (start chat)"""
+	settings = frappe.get_single("n8n Settings")
+	
+	if not settings.enable_n8n or not settings.start_chat_webhook_url:
+		return
+	
+	# Get chat details
+	chat = frappe.get_doc("Chat", message_doc.chat)
+	
+	data = {
+		"name": message_doc.name,
+		"chat": message_doc.chat,
+		"chat_title": chat.title,
+		"chat_user": chat.user,
+		"chat_status": chat.status,
+		"chat_description": chat.description,
+		"content": message_doc.content,
+		"sender": message_doc.sender,
+		"message_type": message_doc.message_type,
+		"created_at": str(message_doc.created_at) if message_doc.created_at else None,
+		"is_first_message": True
+	}
+	
+	send_webhook_to_n8n(settings.start_chat_webhook_url, data, "start.chat")
+
 @frappe.whitelist()
 def test_webhook():
 	"""Test webhook connection to n8n"""

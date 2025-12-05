@@ -7,6 +7,7 @@
  "field_order": [
   "enable_n8n",
   "sb_webhooks",
+  "start_chat_webhook_url",
   "chat_webhook_url",
   "message_webhook_url",
   "column_break_1",
@@ -34,6 +35,13 @@
    "fieldname": "sb_webhooks",
    "fieldtype": "Section Break",
    "label": "Webhook URLs"
+  },
+  {
+   "depends_on": "enable_n8n",
+   "fieldname": "start_chat_webhook_url",
+   "fieldtype": "Data",
+   "label": "Start Chat Webhook URL",
+   "description": "Triggered when the first message is sent in a chat"
   },
   {
    "depends_on": "enable_n8n",
