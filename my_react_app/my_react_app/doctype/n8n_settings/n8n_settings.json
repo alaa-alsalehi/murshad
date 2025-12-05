@@ -13,10 +13,11 @@
   "chat_update_webhook_url",
   "message_update_webhook_url",
   "sb_authentication",
-  "api_key",
-  "api_secret",
+  "basic_auth_username",
+  "basic_auth_password",
   "column_break_2",
   "test_webhook_url",
+  "test_webhook_button",
   "sb_advanced",
   "timeout",
   "retry_attempts"
@@ -66,21 +67,19 @@
    "depends_on": "enable_n8n",
    "fieldname": "sb_authentication",
    "fieldtype": "Section Break",
-   "label": "API Authentication"
+   "label": "Basic Authentication"
   },
   {
    "depends_on": "enable_n8n",
-   "fieldname": "api_key",
+   "fieldname": "basic_auth_username",
    "fieldtype": "Data",
-   "label": "API Key",
-   "read_only": 1
+   "label": "Username"
   },
   {
    "depends_on": "enable_n8n",
-   "fieldname": "api_secret",
+   "fieldname": "basic_auth_password",
    "fieldtype": "Password",
-   "label": "API Secret",
-   "read_only": 1
+   "label": "Password"
   },
   {
    "fieldname": "column_break_2",
@@ -91,6 +90,12 @@
    "fieldname": "test_webhook_url",
    "fieldtype": "Data",
    "label": "Test Webhook URL"
+  },
+  {
+   "depends_on": "eval:doc.enable_n8n && doc.test_webhook_url",
+   "fieldname": "test_webhook_button",
+   "fieldtype": "Button",
+   "label": "Test Webhook"
   },
   {
    "depends_on": "enable_n8n",

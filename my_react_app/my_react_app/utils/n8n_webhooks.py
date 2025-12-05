@@ -2,9 +2,12 @@
 # License: MIT. See LICENSE
 
 import json
+import time
+import base64
 import frappe
 from frappe import _
 from frappe.utils import get_request_session
+from frappe.utils.password import get_decrypted_password
 
 
 def send_webhook_to_n8n(webhook_url, data, event_type=None):
@@ -38,13 +41,14 @@ def send_webhook_to_n8n(webhook_url, data, event_type=None):
 		"User-Agent": "Frappe-n8n-Integration/1.0"
 	}
 	
-	# Add authentication if API key is set
-	if settings.api_key:
-		headers["X-API-Key"] = settings.api_key
-		if settings.api_secret:
-			api_secret = settings.get_api_secret()
-			if api_secret:
-				headers["X-API-Secret"] = api_secret
+	# Prepare Basic Auth
+	auth = None
+	if settings.basic_auth_username and settings.basic_auth_password:
+		password = get_decrypted_password("n8n Settings", settings.name, "basic_auth_password")
+		if password:
+			credentials = f"{settings.basic_auth_username}:{password}"
+			encoded_credentials = base64.b64encode(credentials.encode()).decode()
+			headers["Authorization"] = f"Basic {encoded_credentials}"
 	
 	timeout = settings.timeout or 30
 	retry_attempts = settings.retry_attempts or 3
@@ -70,10 +74,17 @@ def send_webhook_to_n8n(webhook_url, data, event_type=None):
 				frappe.logger().warning(
 					f"Webhook attempt {attempt + 1} failed, retrying: {str(e)}"
 				)
-				frappe.utils.sleep(2 ** attempt)  # Exponential backoff
+				time.sleep(2 ** attempt)  # Exponential backoff
 			else:
-				frappe.logger().error(
-					f"Failed to send webhook to n8n after {retry_attempts} attempts: {str(e)}"
+				# Log error to Error Log doctype
+				frappe.log_error(
+					message=f"Failed to send webhook to n8n after {retry_attempts} attempts.\n"
+						f"Webhook URL: {webhook_url}\n"
+						f"Event Type: {event_type or 'Unknown'}\n"
+						f"Exception: {str(e)}",
+					title=f"n8n Webhook Error - {event_type or 'Unknown'}",
+					reference_doctype="n8n Settings",
+					reference_name=settings.name if hasattr(settings, 'name') else None
 				)
 				# Don't raise exception to prevent blocking the main operation
 				return None
@@ -158,7 +169,6 @@ def trigger_message_updated_webhook(message_doc):
 	
 	send_webhook_to_n8n(settings.message_update_webhook_url, data, "message.updated")
 
-
 @frappe.whitelist()
 def test_webhook():
 	"""Test webhook connection to n8n"""
@@ -176,17 +186,110 @@ def test_webhook():
 		"site": frappe.local.site
 	}
 	
-	response = send_webhook_to_n8n(settings.test_webhook_url, test_data, "test")
+	# Prepare request details to return
+	payload = {
+		"event_type": "test",
+		"data": test_data,
+		"timestamp": frappe.utils.now(),
+		"site": frappe.local.site
+	}
 	
-	if response:
-		return {
-			"status": "success",
-			"message": "Webhook sent successfully",
-			"status_code": response.status_code
-		}
-	else:
+	headers = {
+		"Content-Type": "application/json",
+		"User-Agent": "Frappe-n8n-Integration/1.0"
+	}
+	
+	# Prepare Basic Auth for request details display
+	if settings.basic_auth_username and settings.basic_auth_password:
+		password = get_decrypted_password("n8n Settings", settings.name, "basic_auth_password")
+		if password:
+			credentials = f"{settings.basic_auth_username}:{password}"
+			encoded_credentials = base64.b64encode(credentials.encode()).decode()
+			headers["Authorization"] = f"Basic {encoded_credentials}"
+	
+	# Create display headers (hide password in display)
+	display_headers = headers.copy()
+	if "Authorization" in display_headers:
+		display_headers["Authorization"] = "Basic ***hidden***"
+	
+	request_details = {
+		"url": settings.test_webhook_url,
+		"method": "POST",
+		"headers": display_headers,
+		"body": payload
+	}
+	
+	try:
+		response = send_webhook_to_n8n(settings.test_webhook_url, test_data, "test")
+		
+		response_details = None
+		if response:
+			# Capture response details
+			try:
+				response_body = response.json()
+			except:
+				response_body = response.text
+			
+			response_details = {
+				"status_code": response.status_code,
+				"headers": dict(response.headers),
+				"body": response_body
+			}
+			
+			return {
+				"status": "success",
+				"message": "Webhook sent successfully",
+				"status_code": response.status_code,
+				"request": request_details,
+				"response": response_details
+			}
+		else:
+			return {
+				"status": "error",
+				"message": "Failed to send webhook. Please check the webhook URL and n8n configuration.",
+				"request": request_details,
+				"response": None
+			}
+	except Exception as e:
+		error_message = str(e)
+		response_details = None
+		
+		# Try to extract response details from exception if available
+		if hasattr(e, 'response') and e.response is not None:
+			try:
+				response_body = e.response.json()
+			except:
+				response_body = e.response.text
+			
+			response_details = {
+				"status_code": e.response.status_code,
+				"headers": dict(e.response.headers),
+				"body": response_body
+			}
+		
+		# Log error to Error Log doctype
+		frappe.log_error(
+			message=f"Test webhook failed.\n"
+				f"Webhook URL: {settings.test_webhook_url}\n"
+				f"Exception: {error_message}",
+			title="n8n Test Webhook Error",
+			reference_doctype="n8n Settings",
+			reference_name=settings.name if hasattr(settings, 'name') else None
+		)
+		
+		# Provide more user-friendly error messages
+		if "404" in error_message or "Not Found" in error_message:
+			error_message = "Webhook URL not found (404). Please verify the webhook URL in n8n."
+		elif "401" in error_message or "403" in error_message:
+			error_message = "Authentication failed. Please check your n8n webhook authentication settings."
+		elif "timeout" in error_message.lower():
+			error_message = "Request timed out. Please check your network connection and n8n server."
+		
 		return {
 			"status": "error",
-			"message": "Failed to send webhook"
+			"message": error_message,
+			"request": request_details,
+			"response": response_details
 		}
+
 
