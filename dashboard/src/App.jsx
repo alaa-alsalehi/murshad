@@ -280,12 +280,58 @@ function AiAssistantPage() {
   const [isMainVisible, setIsMainVisible] = useState(true)
   const [loading, setLoading] = useState(false)
   const [pendingMessages, setPendingMessages] = useState(new Map())
+  const [user, setUser] = useState(null)
   const draftsRef = useRef(null)
 
-  // Load chats on component mount
+  // Check authentication and get user info
   useEffect(() => {
-    loadChats()
-  }, [])
+    const checkAuth = async () => {
+      if (!call) return
+      
+      try {
+        // Get current user info
+        const userInfo = await call.get('frappe.auth.get_logged_user')
+        const userName = userInfo?.message
+        
+        // Check if user is logged in (not Guest)
+        if (!userName || userName === 'Guest') {
+          // Not logged in, redirect to login
+          window.location.href = '/login'
+          return
+        }
+        
+        // Get full user details
+        try {
+          const userDoc = await call.get('frappe.client.get', {
+            doctype: 'User',
+            name: userName
+          })
+          if (userDoc?.message) {
+            setUser(userDoc.message)
+          } else {
+            // Fallback to just username
+            setUser({ full_name: userName, name: userName })
+          }
+        } catch (userError) {
+          // If we can't get user details, use username as fallback
+          setUser({ full_name: userName, name: userName })
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error)
+        // If auth check fails, redirect to login
+        window.location.href = '/login'
+      }
+    }
+    
+    checkAuth()
+  }, [call])
+
+  // Load chats on component mount (only after user is authenticated)
+  useEffect(() => {
+    if (user) {
+      loadChats()
+    }
+  }, [user])
 
   // Load messages when current chat changes
   useEffect(() => {
@@ -588,10 +634,12 @@ function AiAssistantPage() {
                 className="ai-sidebar-footer"
                 style={{ border: 'none', background: 'var(--gup-color-sidebar-card)' }}
               >
-                <div className="ai-user-avatar">IS</div>
+                <div className="ai-user-avatar">
+                  {user ? (user.full_name || user.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'U'}
+                </div>
                 <div className="ai-user-meta">
                   <Text variant="subtitle1" className="ai-user-name">
-                    Ibrahim Shaqura
+                    {user ? (user.full_name || user.name || 'User') : 'Loading...'}
                   </Text>
                   <Text variant="caption" className="ai-user-score">
                     ⭐ 12 <span className="ai-user-arrow">›</span>
@@ -814,8 +862,11 @@ function AiAssistantPage() {
 }
 
 function App() {
+  // Get site name from window location (hostname)
+  const siteName = typeof window !== 'undefined' ? window.location.hostname : ''
+  
   return (
-    <FrappeProvider>
+    <FrappeProvider siteName={siteName}>
       <GupProvider>
         <AiAssistantPage />
       </GupProvider>
