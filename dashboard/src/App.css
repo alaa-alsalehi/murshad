@@ -409,6 +409,7 @@ body {
   gap: 8px;
   border-radius: 12px;
   color: var(--gup-color-text);
+  text-align: left;
 }
 
 .ai-chat-item--active {
