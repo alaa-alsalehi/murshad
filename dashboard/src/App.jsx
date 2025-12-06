@@ -281,6 +281,8 @@ function AiAssistantPage() {
   const [loading, setLoading] = useState(false)
   const [pendingMessages, setPendingMessages] = useState(new Map())
   const [user, setUser] = useState(null)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const draftsRef = useRef(null)
 
   // Check authentication and get user info
@@ -349,6 +351,21 @@ function AiAssistantPage() {
     }
   }, [messages])
 
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      // On mobile, sidebar should be closed by default
+      if (window.innerWidth >= 768) {
+        setIsMobileSidebarOpen(false)
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   const loadChats = async () => {
     if (!call) return
     try {
@@ -397,6 +414,10 @@ function AiAssistantPage() {
       setMessages([])
       await loadChats()
       setIsMainVisible(true)
+      // Close mobile sidebar when new chat is created
+      if (isMobile) {
+        setIsMobileSidebarOpen(false)
+      }
     } catch (error) {
       console.error('Error creating chat:', error)
     } finally {
@@ -408,6 +429,10 @@ function AiAssistantPage() {
     setCurrentChat(chatName)
     setIsMainVisible(true)
     await loadMessages(chatName)
+    // Close mobile sidebar when chat is selected
+    if (isMobile) {
+      setIsMobileSidebarOpen(false)
+    }
   }
 
   const quickCards = [
@@ -533,15 +558,23 @@ function AiAssistantPage() {
       style={{ background: 'var(--gup-color-page)', color: 'var(--gup-color-text)' }}
     >
       <div className="ai-shell">
+        {/* Mobile backdrop */}
+        {isMobile && isMobileSidebarOpen && (
+          <div 
+            className="ai-sidebar-backdrop"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+        )}
+        
         <Sidebar
-          className={`ai-sidebar ${isSidebarMinimized ? 'ai-sidebar--minimized' : ''}`}
+          className={`ai-sidebar ${isSidebarMinimized && !isMobile ? 'ai-sidebar--minimized' : ''} ${isMobile ? 'ai-sidebar--mobile' : ''} ${isMobile && isMobileSidebarOpen ? 'ai-sidebar--mobile-open' : ''}`}
           style={{
-            width: isSidebarMinimized ? 72 : 296,
+            width: isMobile ? 296 : (isSidebarMinimized ? 72 : 296),
             background: 'var(--gup-color-sidebar)',
-            borderRight: '1px solid var(--gup-color-border)',
+            borderRight: isMobile ? 'none' : '1px solid var(--gup-color-border)',
           }}
         >
-          {isSidebarMinimized ? (
+          {!isMobile && isSidebarMinimized ? (
             <div className="ai-sidebar-minimal">
               <Button
                 variant="ghost"
@@ -560,17 +593,32 @@ function AiAssistantPage() {
               <div className="ai-sidebar-section">
                 <div className="ai-sidebar-header">
                   <img src={aiBrandIcon} alt="Morshed logo" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ai-menu-button"
-                    type="button"
-                    aria-label="Minimize sidebar"
-                    style={{ width: 32, height: 32, justifyContent: 'center' }}
-                    onClick={() => setIsSidebarMinimized(true)}
-                  >
-                    <img src={menuIcon} alt="" aria-hidden="true" />
-                  </Button>
+                  {!isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ai-menu-button"
+                      type="button"
+                      aria-label="Minimize sidebar"
+                      style={{ width: 32, height: 32, justifyContent: 'center' }}
+                      onClick={() => setIsSidebarMinimized(true)}
+                    >
+                      <img src={menuIcon} alt="" aria-hidden="true" />
+                    </Button>
+                  )}
+                  {isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ai-menu-button"
+                      type="button"
+                      aria-label="Close sidebar"
+                      style={{ width: 32, height: 32, justifyContent: 'center', marginLeft: 'auto' }}
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                    >
+                      ✕
+                    </Button>
+                  )}
                 </div>
 
                 <Button
@@ -661,7 +709,25 @@ function AiAssistantPage() {
                 position: 'static',
               }}
             >
-              <div />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isMobile && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="ai-hamburger-button"
+                    aria-label="Open sidebar"
+                    onClick={() => setIsMobileSidebarOpen(true)}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <img src={menuIcon} alt="" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
               <Button
                 type="button"
                 variant="ghost"
