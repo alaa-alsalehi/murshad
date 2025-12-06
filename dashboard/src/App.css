@@ -555,6 +555,28 @@ body {
   align-self: flex-start;
 }
 
+.ai-draft-pill--pending {
+  opacity: 0.7;
+}
+
+.ai-draft-pill-indicator {
+  display: inline-block;
+  margin-left: 8px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .ai-input-bar {
   width: 100%;
   max-width: 880px;

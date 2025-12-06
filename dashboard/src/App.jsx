@@ -279,6 +279,7 @@ function AiAssistantPage() {
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false)
   const [isMainVisible, setIsMainVisible] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [pendingMessages, setPendingMessages] = useState(new Map())
   const draftsRef = useRef(null)
 
   // Load chats on component mount
@@ -413,33 +414,69 @@ function AiAssistantPage() {
     // Check if this is the first message (before creating it)
     const isFirstMessage = messages.length === 0
 
-    // Create the message
+    // Create temporary message ID for optimistic update
+    const tempId = `temp-${Date.now()}-${Math.random()}`
+    const optimisticMessage = {
+      name: tempId,
+      content: trimmed,
+      message_type: 'User',
+      created_at: new Date().toISOString(),
+      sender: 'current_user'
+    }
+
+    // Add message optimistically to UI immediately
+    setMessages(prev => [...prev, optimisticMessage])
+    setPendingMessages(prev => new Map(prev).set(tempId, true))
+    setInput('')
+
+    // Create the message on backend
     try {
-      await call.post('my_react_app.my_react_app.doctype.message.message.create_message', {
+      const result = await call.post('my_react_app.my_react_app.doctype.message.message.create_message', {
         chat: chatName,
         content: trimmed,
         message_type: 'User'
       })
-      setInput('')
       
-      // If this is the first message, update the chat title to the message content
+      // Get the actual message data from response
+      const actualMessage = result?.message || result
+      
+      // Replace optimistic message with actual message
+      setMessages(prev => prev.map(msg => 
+        msg.name === tempId ? actualMessage : msg
+      ))
+      
+      // Remove pending status
+      setPendingMessages(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(tempId)
+        return newMap
+      })
+      
+      // If this is the first message, update the chat title (non-blocking)
       if (isFirstMessage) {
-        try {
-          const title = trimmed.substring(0, 50) || trimmed
-          await call.post('my_react_app.my_react_app.doctype.chat.chat.update_chat_title', {
-            chat_name: chatName,
-            title: title
-          })
-          // Reload chats to show updated title
-          await loadChats()
-        } catch (error) {
+        const title = trimmed.substring(0, 50) || trimmed
+        // Fire and forget - don't wait for this
+        call.post('my_react_app.my_react_app.doctype.chat.chat.update_chat_title', {
+          chat_name: chatName,
+          title: title
+        }).then(() => {
+          // Reload chats in background to show updated title
+          loadChats()
+        }).catch(error => {
           console.error('Error updating chat title:', error)
-        }
+        })
       }
-      
-      await loadMessages(chatName)
     } catch (error) {
       console.error('Error creating message:', error)
+      // Remove the optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.name !== tempId))
+      setPendingMessages(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(tempId)
+        return newMap
+      })
+      // Restore input
+      setInput(trimmed)
     }
   }
 
@@ -611,14 +648,20 @@ function AiAssistantPage() {
                     {currentChat ? 'No messages yet. Start the conversation!' : 'Select a chat or create a new one'}
                   </div>
                 ) : (
-                  (Array.isArray(messages) ? [...messages].reverse() : []).map((message) => (
-                    <span 
-                      key={message.name} 
-                      className={`ai-draft-pill ${message.message_type === 'Assistant' ? 'ai-draft-pill--assistant' : 'ai-draft-pill--user'}`}
-                    >
-                      {message.content}
-                    </span>
-                  ))
+                  (Array.isArray(messages) ? [...messages].reverse() : []).map((message) => {
+                    const isPending = pendingMessages.has(message.name)
+                    return (
+                      <span 
+                        key={message.name} 
+                        className={`ai-draft-pill ${message.message_type === 'Assistant' ? 'ai-draft-pill--assistant' : 'ai-draft-pill--user'} ${isPending ? 'ai-draft-pill--pending' : ''}`}
+                      >
+                        {message.content}
+                        {isPending && (
+                          <span className="ai-draft-pill-indicator" />
+                        )}
+                      </span>
+                    )
+                  })
                 )}
               </div>
 

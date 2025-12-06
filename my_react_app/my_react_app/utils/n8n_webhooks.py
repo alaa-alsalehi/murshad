@@ -132,8 +132,14 @@ def trigger_chat_updated_webhook(chat_doc):
 	send_webhook_to_n8n(settings.chat_update_webhook_url, data, "chat.updated")
 
 
-def trigger_message_created_webhook(message_doc):
+def trigger_message_created_webhook(message_name=None, message_doc=None):
 	"""Trigger webhook when a message is created"""
+	if not message_doc and message_name:
+		message_doc = frappe.get_doc("Message", message_name)
+	
+	if not message_doc:
+		return
+	
 	settings = frappe.get_single("n8n Settings")
 	
 	if not settings.enable_n8n or not settings.message_webhook_url:
@@ -151,8 +157,14 @@ def trigger_message_created_webhook(message_doc):
 	send_webhook_to_n8n(settings.message_webhook_url, data, "message.created")
 
 
-def trigger_message_updated_webhook(message_doc):
+def trigger_message_updated_webhook(message_name=None, message_doc=None):
 	"""Trigger webhook when a message is updated"""
+	if not message_doc and message_name:
+		message_doc = frappe.get_doc("Message", message_name)
+	
+	if not message_doc:
+		return
+	
 	settings = frappe.get_single("n8n Settings")
 	
 	if not settings.enable_n8n or not settings.message_update_webhook_url:
@@ -170,8 +182,14 @@ def trigger_message_updated_webhook(message_doc):
 	send_webhook_to_n8n(settings.message_update_webhook_url, data, "message.updated")
 
 
-def trigger_start_chat_webhook(message_doc):
+def trigger_start_chat_webhook(message_name=None, message_doc=None):
 	"""Trigger webhook when the first message is created in a chat (start chat)"""
+	if not message_doc and message_name:
+		message_doc = frappe.get_doc("Message", message_name)
+	
+	if not message_doc:
+		return
+	
 	settings = frappe.get_single("n8n Settings")
 	
 	if not settings.enable_n8n or not settings.start_chat_webhook_url:

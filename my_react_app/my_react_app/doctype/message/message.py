@@ -12,37 +12,57 @@ class Message(Document):
 			self.created_at = now()
 		if not self.sender:
 			self.sender = frappe.session.user
-		# Update chat's updated_at when a new message is added
 		if self.chat:
-			chat = frappe.get_doc("Chat", self.chat)
-			chat.updated_at = now()
-			chat.save(ignore_permissions=True)
-			
 			# Check if this will be the first message in the chat
-			existing_count = frappe.db.count("Message", {"chat": self.chat})
+			# Use cached query for better performance
+			existing_count = frappe.db.count("Message", {"chat": self.chat}, cache=True)
 			self._is_first_message = (existing_count == 0)
 		else:
 			self._is_first_message = False
 	
 	def after_insert(self):
-		"""Trigger webhook when message is created"""
+		"""Trigger webhook when message is created (asynchronously)"""
 		try:
 			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_created_webhook, trigger_start_chat_webhook
-			# Check if this is the first message (start chat)
-			if getattr(self, '_is_first_message', False):
-				trigger_start_chat_webhook(self)
-			# Always trigger message created webhook
-			trigger_message_created_webhook(self)
+			# Enqueue webhooks as background jobs to avoid blocking the response
+			message_name = self.name
+			is_first = getattr(self, '_is_first_message', False)
+			
+			# Always trigger message created webhook (async)
+			frappe.enqueue(
+				trigger_message_created_webhook,
+				message_name=message_name,
+				queue='short',
+				timeout=300,
+				now=False
+			)
+			
+			# If first message, also trigger start chat webhook (async)
+			if is_first:
+				frappe.enqueue(
+					trigger_start_chat_webhook,
+					message_name=message_name,
+					queue='short',
+					timeout=300,
+					now=False
+				)
 		except Exception as e:
-			frappe.logger().error(f"Failed to trigger message webhooks: {str(e)}")
+			frappe.logger().error(f"Failed to enqueue message webhooks: {str(e)}")
 	
 	def on_update(self):
-		"""Trigger webhook when message is updated"""
+		"""Trigger webhook when message is updated (asynchronously)"""
 		try:
 			from my_react_app.my_react_app.utils.n8n_webhooks import trigger_message_updated_webhook
-			trigger_message_updated_webhook(self)
+			# Enqueue webhook as background job to avoid blocking
+			frappe.enqueue(
+				trigger_message_updated_webhook,
+				message_name=self.name,
+				queue='short',
+				timeout=300,
+				now=False
+			)
 		except Exception as e:
-			frappe.logger().error(f"Failed to trigger message updated webhook: {str(e)}")
+			frappe.logger().error(f"Failed to enqueue message updated webhook: {str(e)}")
 
 
 @frappe.whitelist()
