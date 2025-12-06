@@ -467,6 +467,7 @@
   text-align: right;
   display: inline-block;
   max-width: fit-content;
+  min-height: 48px;
   word-wrap: break-word;
   white-space: normal;
   box-sizing: border-box;
