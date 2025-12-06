@@ -612,7 +612,10 @@ function AiAssistantPage() {
                   </div>
                 ) : (
                   (Array.isArray(messages) ? [...messages].reverse() : []).map((message) => (
-                    <span key={message.name} className="ai-draft-pill">
+                    <span 
+                      key={message.name} 
+                      className={`ai-draft-pill ${message.message_type === 'Assistant' ? 'ai-draft-pill--assistant' : 'ai-draft-pill--user'}`}
+                    >
                       {message.content}
                     </span>
                   ))

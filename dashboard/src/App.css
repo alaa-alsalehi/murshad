@@ -494,7 +494,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  align-items: flex-end;
+  align-items: stretch;
   scrollbar-color: var(--gup-color-brand) transparent;
   scrollbar-width: thin;
 }
@@ -530,6 +530,15 @@
   white-space: normal;
   box-sizing: border-box;
   overflow: hidden;
+  align-self: flex-end;
+}
+
+.ai-draft-pill--assistant {
+  background-color: #e5e7eb;
+  color: var(--gup-color-text);
+  border-radius: 16px 16px 16px 0;
+  text-align: left;
+  align-self: flex-start;
 }
 
 .ai-input-bar {
