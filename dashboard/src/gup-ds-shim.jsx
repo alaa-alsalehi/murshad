@@ -16,8 +16,7 @@ export function Layout({ children, fullHeight, className, style, ...rest }) {
         minHeight: fullHeight ? '100vh' : undefined,
         background: '#f3f4f6',
         color: '#111827',
-        fontFamily:
-          "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        fontFamily: "'Readex Pro', sans-serif",
         ...style,
       }}
       {...rest}
