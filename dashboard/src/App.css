@@ -481,17 +481,39 @@
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .ai-drafts {
   width: 100%;
   max-width: 880px;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 8px;
-  max-height: 220px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   align-items: flex-end;
+  scrollbar-color: var(--gup-color-brand) transparent;
+  scrollbar-width: thin;
+}
+
+.ai-drafts::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-drafts::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-drafts::-webkit-scrollbar-thumb {
+  background-color: var(--gup-color-brand);
+  border-radius: 3px;
+}
+
+.ai-drafts::-webkit-scrollbar-thumb:hover {
+  background-color: var(--gup-color-brand);
 }
 
 .ai-draft-pill {

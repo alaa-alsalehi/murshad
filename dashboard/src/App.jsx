@@ -295,7 +295,7 @@ function AiAssistantPage() {
     }
   }, [currentChat])
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (with column-reverse, scrollTop = 0 is the bottom)
   useEffect(() => {
     if (draftsRef.current) {
       draftsRef.current.scrollTop = draftsRef.current.scrollHeight
@@ -611,7 +611,7 @@ function AiAssistantPage() {
                     {currentChat ? 'No messages yet. Start the conversation!' : 'Select a chat or create a new one'}
                   </div>
                 ) : (
-                  (Array.isArray(messages) ? messages : []).map((message) => (
+                  (Array.isArray(messages) ? [...messages].reverse() : []).map((message) => (
                     <span key={message.name} className="ai-draft-pill">
                       {message.content}
                     </span>
