@@ -463,7 +463,7 @@ body {
 
 .ai-main {
   flex: 1;
-  padding: 32px 48px 48px;
+  padding: 8px 48px 48px;
   display: flex;
   flex-direction: column;
   gap: 16px;
