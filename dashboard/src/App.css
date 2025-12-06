@@ -536,7 +536,7 @@ body {
   color: var(--gup-color-sidebar-card);
   text-align: right;
   display: inline-block;
-  max-width: fit-content;
+  max-width: 66.666%;
   height: auto;
   min-height: auto;
   word-wrap: break-word;
